@@ -1,0 +1,1 @@
+Object-oriented programming is based on classes, objects, inheritance, encapsulation, and polymorphism.
