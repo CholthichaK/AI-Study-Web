@@ -1,14 +1,22 @@
 import os
 import shutil
 import uuid
+
+# FastAPI tools for creating API routes and handling file uploads
 from fastapi import FastAPI, UploadFile, File, Form
+
+# Middleware that allows the frontend to communicate with the backend
 from fastapi.middleware.cors import CORSMiddleware
 
+
+# File processing functions
 from app.file_processor import (
     extract_text_from_file,
     chunk_text,
     retrieve_relevant_chunks,
 )
+
+# Study assistant functions
 from app.study_tools import (
     chat_with_notes,
     generate_quiz,
@@ -18,33 +26,70 @@ from app.study_tools import (
     generate_flashcards_json,
     generate_mindmap_json,
 )
+
+# Code analysis functions
 from app.code_analyzer import explain_code, find_bugs, optimize_code
 
+
+# Create the FastAPI application
 app = FastAPI(title="AI Study & Code Assistant API")
 
+
+# Allow requests from the Streamlit frontend
+# This is useful when frontend and backend run on different ports
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Allows all frontend origins
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allows all HTTP methods
+    allow_headers=["*"],  # Allows all request headers
 )
 
+
+# In-memory file storage
+# Uploaded files are stored here while the backend is running
+# Note: This resets when the server restarts
 stored_files = {}
 
 
 @app.get("/")
 def home():
+
+    #  """
+    # Root endpoint used to check if the API is running.
+
+    # Returns:
+    #     dict:
+    #         Simple status message.
+    # """
     return {"message": "AI Study & Code Assistant API is running"}
 
 
 def get_selected_files(file_ids=None):
+
+    #  """
+    # Gets selected files from memory.
+
+    # If no file IDs are provided, all uploaded files are selected.
+
+    # Parameters:
+    #     file_ids (list | None):
+    #         List of selected file IDs from the frontend.
+
+    # Returns:
+    #     list:
+    #         Selected file objects.
+    # """
+
+    # If no files are uploaded, return empty list
     if not stored_files:
         return []
 
+    # If frontend sends no selected IDs, use all files
     if not file_ids:
         return list(stored_files.values())
 
+    # Return only files whose IDs match selected IDs
     return [
         stored_files[file_id]
         for file_id in file_ids
@@ -53,23 +98,77 @@ def get_selected_files(file_ids=None):
 
 
 def get_selected_context(file_ids=None):
+
+    #   """
+    # Combines full text from selected files.
+
+    # This is used for tools such as quiz, flashcards,
+    # and mind map generation.
+
+    # Parameters:
+    #     file_ids (list | None):
+    #         Selected file IDs.
+
+    # Returns:
+    #     tuple:
+    #         combined_text (str), selected_files (list)
+    # """
+
+
+     # Get selected file objects
     selected_files = get_selected_files(file_ids)
 
+    # Combine selected file texts into one large context
     combined_text = "\n\n".join(
         f"File: {item['filename']}\n{item['text']}"
         for item in selected_files
     )
 
+    #blank lines between files
+
     return combined_text, selected_files
 
 
 def get_retrieved_context(question: str, file_ids=None, top_k: int = 5):
+    #    """
+    # Retrieves relevant chunks from selected files.
+
+    # This is the lightweight RAG-style retrieval step.
+
+    # Flow:
+    # 1. Get selected files.
+    # 2. Collect all chunks from those files.
+    # 3. Score chunks based on keyword overlap.
+    # 4. Retrieve top_k most relevant chunks.
+    # 5. Build a context string for the AI.
+
+    # Parameters:
+    #     question (str):
+    #         User's question.
+
+    #     file_ids (list | None):
+    #         Selected file IDs.
+
+    #     top_k (int):
+    #         Number of chunks to retrieve.
+
+    # Returns:
+    #     dict:
+    #         Retrieved context, selected files, chunk stats, and sources.
+    # """
+    
     selected_files = get_selected_files(file_ids)
 
+    # Store all chunks with metadata
     all_chunks = []
 
+    # Loop through selected files
     for item in selected_files:
+
+        # Loop through each chunk in the file
         for chunk_index, chunk in enumerate(item["chunks"]):
+
+            # Store chunk text plus source information
             all_chunks.append(
                 {
                     "filename": item["filename"],
@@ -79,18 +178,25 @@ def get_retrieved_context(question: str, file_ids=None, top_k: int = 5):
                 }
             )
 
+    # Extract only the chunk text for retrieval scoring
     chunk_texts = [item["chunk"] for item in all_chunks]
 
+    # Retrieve the most relevant chunks using lightweight keyword matching
     retrieved_chunks = retrieve_relevant_chunks(
         question=question,
         chunks=chunk_texts,
         top_k=top_k,
     )
 
+    # These will be sent to the AI as context
     retrieved_context_parts = []
+
+    # These will be returned to the frontend as source information
     sources = []
 
+    # Loop through retrieved chunks and match each chunk back to its source file
     for index, chunk in enumerate(retrieved_chunks):
+       # Find the original file/chunk metadata
         source_item = next(
             (
                 item
@@ -100,12 +206,14 @@ def get_retrieved_context(question: str, file_ids=None, top_k: int = 5):
             None,
         )
 
+        # If source metadata is found, create source label
         if source_item:
             source_label = (
                 f"{source_item['filename']} "
                 f"(chunk {source_item['chunk_index']})"
             )
 
+            # Store source info for frontend display
             sources.append(
                 {
                     "filename": source_item["filename"],
