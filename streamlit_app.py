@@ -9,15 +9,188 @@ st.set_page_config(
     page_icon="AI",
     layout="wide",
 )
+st.markdown("""
+<style>
+/* ── Mint Gradient Theme ── */
 
+/* Main app background */
+.stApp {
+    background: linear-gradient(135deg, #e0faf4 0%, #c2f0e2 30%, #a8e6d4 60%, #d4f5ec 100%);
+    background-attachment: fixed;
+}
+/* Sidebar background */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #b2edd8 0%, #88d8b8 100%);
+}
+/* Top header bar */
+[data-testid="stHeader"] {
+    background: linear-gradient(90deg, #3ecfa0 0%, #2bb889 100%);
+}
+/* Main title */
+h1 {
+    color: #1a7a5e !important;
+    text-shadow: 0 1px 3px rgba(62, 207, 160, 0.25);
+}
+/* Subheaders */
+h2, h3 {
+    color: #1e9470 !important;
+}
+/* Markdown text */
+.stMarkdown p, .stMarkdown li {
+    color: #1b4d3e;
+}
+/* Buttons */
+.stButton > button {
+    background: linear-gradient(135deg, #3ecfa0 0%, #27b589 100%);
+    color: #0d3d2e !important;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(39, 181, 137, 0.3);
+}
+.stButton > button:hover {
+    background: linear-gradient(135deg, #1aaf7a 0%, #148a5e 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(20, 138, 94, 0.55) !important;
+    transform: translateY(-1px);
+}
+.stButton > button:disabled {
+    background: #8ecfb8 !important;
+    color: #2d6e55 !important;
+    box-shadow: none;
+    transform: none;
+    opacity: 0.75;
+}
+/* Input/selectbox/textarea labels */
+.stTextInput label,
+.stTextArea label,
+.stSelectbox label,
+.stFileUploader label,
+.stNumberInput label,
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] span {
+    color: #1e9470 !important;
+    font-weight: 600 !important;
+}
+/* Text inputs & text areas */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
+    background-color: #f0fdf8;
+    border: 1.5px solid #7dd9b8;
+    border-radius: 8px;
+    color: #1b4d3e;
+}
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+    border-color: #3ecfa0;
+    box-shadow: 0 0 0 3px rgba(62, 207, 160, 0.2);
+}
+/* Selectbox */
+.stSelectbox > div > div {
+    background-color: #f0fdf8;
+    border: 1.5px solid #7dd9b8;
+    border-radius: 8px;
+    color: #1b4d3e;
+}
+/* File uploader */
+[data-testid="stFileUploader"] {
+    background-color: #e8faf3;
+    border: 2px dashed #3ecfa0;
+    border-radius: 10px;
+    padding: 8px;
+}
+/* File uploader inner dark button */
+[data-testid="stFileUploaderDropzone"],
+[data-testid="stFileUploaderDropzoneInstructions"],
+[data-testid="stFileUploader"] > div,
+[data-testid="stFileUploader"] section,
+[data-testid="stFileUploader"] button {
+    background-color: #c8f0e0 !important;
+    background: #c8f0e0 !important;
+    color: #0d3d2e !important;
+    border-color: #3ecfa0 !important;
+}
+[data-testid="stFileUploader"] small,
+[data-testid="stFileUploader"] span,
+[data-testid="stFileUploader"] p {
+    color: #1b4d3e !important;
+}
+
+/* Chat messages */
+[data-testid="stChatMessage"] {
+    background-color: rgba(224, 250, 244, 0.85);
+    border-radius: 10px;
+    border-left: 3px solid #3ecfa0;
+    margin-bottom: 6px;
+}
+/* Chat input — force mint on every layer */
+[data-testid="stChatInput"],
+[data-testid="stChatInput"] *,
+[data-testid="stChatInputContainer"],
+[data-testid="stChatInputContainer"] * {
+    background-color: #e8faf3 !important;
+    background: #e8faf3 !important;
+    color: #1b4d3e !important;
+    caret-color: #27b589 !important;
+}
+[data-testid="stChatInput"],
+[data-testid="stChatInputContainer"] {
+    border: 1.5px solid #7dd9b8 !important;
+    border-radius: 12px !important;
+}
+[data-testid="stChatInput"] textarea,
+[data-testid="stChatInputContainer"] textarea {
+    border: none !important;
+    border-radius: 10px !important;
+}
+/* Info / success / warning / error boxes */
+[data-testid="stAlert"] {
+    border-radius: 8px;
+}
+.stSuccess {
+    background-color: #d4f5e9 !important;
+    border-left-color: #27b589 !important;
+    color: #1a7a5e !important;
+}
+.stInfo {
+    background-color: #dff6f0 !important;
+    border-left-color: #3ecfa0 !important;
+    color: #1b4d3e !important;
+}
+/* Radio buttons */
+.stRadio > label {
+    color: #1b4d3e;
+}
+/* Checkboxes */
+.stCheckbox > label {
+    color: #1b4d3e;
+}
+/* Captions */
+.stCaption {
+    color: #3a8a6e !important;
+}
+/* Horizontal rule */
+hr {
+    border-color: #a8e6d4;
+}
+/* Columns / card-like containers */
+[data-testid="column"] {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 12px;
+    padding: 4px;
+}
+/* Spinner */
+.stSpinner > div {
+    border-top-color: #3ecfa0 !important;
+}
+</style>
+""", unsafe_allow_html=True)
 st.title("AI Study & Code Assistant")
-
 left, middle, right = st.columns([1.25, 2.2, 1.45])
 
-
-# -----------------------------
 # Session State
-# -----------------------------
 defaults = {
     "uploaded_text_preview": "",
     "chat_history": [],
@@ -39,20 +212,15 @@ defaults = {
     "folders": ["Default"],
     "selected_upload_folder": "Default",
 }
-
 for key, value in defaults.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
-
-# -----------------------------
 # API Helpers
-# -----------------------------
 def get_selected_payload():
     return {
         "file_ids": st.session_state.selected_file_ids
     }
-
 
 def refresh_files():
     try:
@@ -74,14 +242,10 @@ def refresh_files():
     except Exception:
         pass
 
-
 def selected_file_count():
     return len(st.session_state.selected_file_ids)
 
-
-# -----------------------------
 # Chat Helpers
-# -----------------------------
 def add_user_message(content):
     st.session_state.chat_history.append(
         {
@@ -89,8 +253,6 @@ def add_user_message(content):
             "content": content,
         }
     )
-
-
 def add_assistant_text(content):
     st.session_state.chat_history.append(
         {
@@ -98,8 +260,6 @@ def add_assistant_text(content):
             "content": content,
         }
     )
-
-
 def detect_chat_intent(message):
     text = message.lower()
 
@@ -114,11 +274,9 @@ def detect_chat_intent(message):
 
     return "chat"
 
-
 def render_chat_message(msg):
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
-
 
 def render_rag_stats():
     stats = st.session_state.rag_stats
@@ -133,16 +291,12 @@ def render_rag_stats():
         f"Mode: {stats.get('rag_mode', 'lightweight retrieval')}"
     )
 
-
-# -----------------------------
 # Tool Helpers
-# -----------------------------
 def reset_quiz_state():
     st.session_state.quiz_index = 0
     st.session_state.quiz_score = 0
     st.session_state.quiz_checked = False
     st.session_state.quiz_selected = None
-
 
 def load_quiz():
     add_user_message("Generate a quiz from my selected notes.")
@@ -165,11 +319,9 @@ def load_quiz():
         "chunks_used": data.get("chunks_used", 0),
         "rag_mode": data.get("rag_mode", "selected document context"),
     }
-
     st.session_state.quiz_data = result
     reset_quiz_state()
     st.session_state.right_mode = "quiz"
-
 
 def load_flashcards():
     add_user_message("Generate flashcards from my selected notes.")
@@ -198,7 +350,6 @@ def load_flashcards():
     st.session_state.flashcard_show_answer = False
     st.session_state.right_mode = "flashcards"
 
-
 def load_mindmap():
     add_user_message("Generate a mind map from my selected notes.")
 
@@ -224,14 +375,10 @@ def load_mindmap():
     st.session_state.mindmap_data = result
     st.session_state.right_mode = "mindmap"
 
-
 def close_tool():
     st.session_state.right_mode = "tools"
 
-
-# -----------------------------
 # Right Panel Renderers
-# -----------------------------
 def render_quiz_panel():
     st.subheader("Interactive Quiz")
     render_rag_stats()
@@ -315,7 +462,6 @@ def render_quiz_panel():
         close_tool()
         st.rerun()
 
-
 def render_flashcards_panel():
     st.subheader("Flashcards")
     render_rag_stats()
@@ -373,7 +519,6 @@ def render_flashcards_panel():
         close_tool()
         st.rerun()
 
-
 def build_graph_from_mindmap(mindmap):
     nodes = []
     edges = []
@@ -393,12 +538,10 @@ def build_graph_from_mindmap(mindmap):
                 size=24,
             )
         )
-
         details_map[node_id] = {
             "title": title,
             "details": details,
         }
-
         if parent_id:
             edges.append(
                 Edge(
@@ -406,14 +549,11 @@ def build_graph_from_mindmap(mindmap):
                     target=node_id,
                 )
             )
-
         for child in node.get("children", []):
             add_node(child, node_id, counter)
 
         return node_id
-
     root_id = "root"
-
     nodes.append(
         Node(
             id=root_id,
@@ -421,17 +561,14 @@ def build_graph_from_mindmap(mindmap):
             size=32,
         )
     )
-
     details_map[root_id] = {
         "title": mindmap.get("title", "Mind Map"),
         "details": mindmap.get("summary", ""),
     }
-
     for node in mindmap.get("nodes", []):
         add_node(node, root_id)
 
     return nodes, edges, details_map
-
 
 def render_mindmap_panel():
     st.subheader("Mind Map")
@@ -463,13 +600,11 @@ def render_mindmap_panel():
         highlightColor="#F7A7A6",
         collapsible=True,
     )
-
     selected_node = agraph(
         nodes=nodes,
         edges=edges,
         config=config,
     )
-
     st.markdown("---")
 
     if selected_node:
@@ -478,10 +613,8 @@ def render_mindmap_panel():
         if details:
             st.markdown(f"**{details['title']}**")
             st.write(details.get("details") or "No details available.")
-
     else:
         st.caption("Click a node to view details.")
-
     st.markdown("---")
 
     if st.button("Generate Another Mind Map", use_container_width=True):
@@ -491,7 +624,6 @@ def render_mindmap_panel():
     if st.button("Close Mind Map", use_container_width=True):
         close_tool()
         st.rerun()
-
 
 def render_tools_panel():
     st.subheader("AI Tools")
@@ -519,7 +651,6 @@ def render_tools_panel():
         value=st.session_state.code_text,
         height=200,
     )
-
     st.session_state.code_text = code_input
 
     c1, c2, c3 = st.columns(3)
@@ -557,10 +688,7 @@ def render_tools_panel():
             add_assistant_text(result)
         st.rerun()
 
-
-# -----------------------------
 # Left Panel
-# -----------------------------
 with left:
     st.subheader("Sources")
 
@@ -582,7 +710,6 @@ with left:
         if st.session_state.selected_upload_folder in st.session_state.folders
         else 0,
     )
-
     st.session_state.selected_upload_folder = selected_folder
 
     uploaded_files = st.file_uploader(
@@ -590,7 +717,6 @@ with left:
         type=["pdf", "docx", "txt", "py", "java", "js", "cpp", "html", "css"],
         accept_multiple_files=True,
     )
-
     if uploaded_files:
         if st.button("Process Files", use_container_width=True):
             files_payload = []
@@ -606,7 +732,6 @@ with left:
                         ),
                     )
                 )
-
             with st.spinner("Extracting files..."):
                     response = requests.post(
                         f"{API_URL}/upload-multiple",
@@ -615,7 +740,6 @@ with left:
                         },
                         files=files_payload,
                     )
-
             if response.status_code == 200:
                 data = response.json()
                 uploaded = data.get("uploaded", [])
@@ -626,13 +750,11 @@ with left:
                     item.get("filename", "file")
                     for item in uploaded
                 ]
-
                 add_assistant_text(
                     "Files uploaded successfully: "
                     + ", ".join(uploaded_names)
                     + ". Select files from the source list before chatting or generating study tools."
                 )
-
                 if uploaded:
                     st.session_state.uploaded_text_preview = uploaded[0].get("preview", "")
 
@@ -642,9 +764,7 @@ with left:
                 st.error("Upload failed.")
 
     st.markdown("### File Library")
-
     refresh_files()
-
     files = st.session_state.files
 
     if not files:
@@ -668,7 +788,6 @@ with left:
                     value=checked,
                     key=f"file_checkbox_{file_id}",
                 )
-
                 if new_checked and file_id not in st.session_state.selected_file_ids:
                     st.session_state.selected_file_ids.append(file_id)
 
@@ -681,9 +800,7 @@ with left:
                     st.rerun()
 
     st.markdown("### Selected")
-
     st.caption(f"{selected_file_count()} file(s) selected")
-
     st.markdown("### Preview")
 
     if st.session_state.active_preview_file:
@@ -698,15 +815,15 @@ with left:
     else:
         st.info("Select Preview on a file to see extracted text.")
 
-
-# -----------------------------
 # Middle Panel
-# -----------------------------
 with middle:
     st.subheader("Chat With Your Notes")
 
-    for msg in st.session_state.chat_history:
-        render_chat_message(msg)
+    chat_box = st.container(height=520, border=True)
+
+    with chat_box:
+        for msg in st.session_state.chat_history:
+            render_chat_message(msg)
 
     question = st.chat_input("Ask about your selected notes...")
 
@@ -742,17 +859,12 @@ with middle:
                     "chunks_used": data.get("chunks_used", 0),
                     "rag_mode": data.get("rag_mode", "lightweight retrieval"),
                 }
-
                 add_assistant_text(answer)
 
         st.rerun()
-
     render_rag_stats()
 
-
-# -----------------------------
 # Right Panel
-# -----------------------------
 with right:
     if st.session_state.right_mode == "quiz":
         render_quiz_panel()
