@@ -1,4 +1,5 @@
 # Library used to read and extract text from PDF files
+
 from pypdf import PdfReader
 
 # Library used to read and extract text from DOCX files

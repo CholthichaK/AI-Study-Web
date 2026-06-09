@@ -1,6 +1,7 @@
+# Import the shared AI function that sends prompts to Groq
 from app.ai_engine import ask_ai
 
-
+# Take the first 12,000 characters only
 def explain_code(code: str) -> str:
     prompt = f"""
 You are an expert programming tutor.
@@ -8,6 +9,8 @@ You are an expert programming tutor.
 Explain the following code for a beginner.
 
 Code:
+
+
 {code[:12000]}
 
 Provide:
