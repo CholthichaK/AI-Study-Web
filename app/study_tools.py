@@ -31,27 +31,56 @@ def extract_json(text: str):
     return None
 
 
-def chat_with_notes(question: str, context: str) -> str:
+def chat_with_notes(
+    question: str,
+    context: str,
+    chat_memory: str = "",
+) -> str:
     prompt = f"""
-You are an AI study assistant. Answer the question using the uploaded notes.
+You are an AI study assistant.
 
-Uploaded notes:
+You can answer using:
+1. Retrieved uploaded notes
+2. Previous conversation history
+
+Retrieved Notes:
 {context[:12000]}
 
-Question:
+Conversation History:
+{chat_memory}
+
+Current Question:
 {question}
 
 Rules:
-- Answer clearly.
-- Use simple student-friendly language.
-- If the answer is not in the notes, say that clearly.
+- If the answer is in the conversation history, use the conversation history.
+- If the answer is in the uploaded notes, use the uploaded notes.
+- If the user asks about something they mentioned earlier, remember it from conversation history.
+- For personal details, deadlines, due dates, tasks, or plans mentioned by the user, trust the conversation history.
+- Do not say "not in the uploaded notes" if the answer is available in the conversation history.
+- If the answer is not in either the notes or conversation history, say you do not have that information.
+- Answer clearly and naturally.
 """
+
     return ask_ai(prompt)
 
 
 def generate_quiz(context: str) -> str:
     prompt = f"""
 Create 5 multiple-choice quiz questions from these notes.
+
+Previously generated questions:
+
+{previous_text}
+
+Requirements:
+
+- Do NOT repeat any previous questions.
+- Do NOT create reworded versions of previous questions.
+- Generate completely new questions.
+- Focus on different concepts from the notes.
+- Cover different sections of the material.
+- Mix easy, medium, and difficult questions.
 
 Notes:
 {context[:12000]}
@@ -103,7 +132,15 @@ Keep it clear and organized.
     return ask_ai(prompt)
 
 
-def generate_quiz_json(context: str):
+def generate_quiz_json(
+    context: str,
+    previous_questions=None,
+):
+    previous_questions = previous_questions or []
+    previous_text = "\n".join(
+    f"- {q}"
+    for q in previous_questions
+)
     prompt = f"""
 Create 5 multiple-choice quiz questions from the notes.
 
@@ -175,7 +212,7 @@ def generate_mindmap_json(context: str):
     """
     Generates a study-focused structured JSON mind map.
 
-    This version is designed to produce meaningful learning nodes,
+    This version is designed to create meaningful learning nodes,
     not random tiny actions or unclear branches.
     """
 

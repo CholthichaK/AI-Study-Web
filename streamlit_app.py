@@ -1,3 +1,4 @@
+
 import requests
 import streamlit as st
 from streamlit_agraph import agraph, Node, Edge, Config
@@ -201,6 +202,7 @@ defaults = {
     "quiz_score": 0,
     "quiz_checked": False,
     "quiz_selected": None,
+    "quiz_history": [],
     "flashcards_data": [],
     "flashcard_index": 0,
     "flashcard_show_answer": False,
@@ -304,7 +306,10 @@ def load_quiz():
     with st.spinner("Generating quiz..."):
         response = requests.post(
             f"{API_URL}/quiz-json",
-            json=get_selected_payload(),
+            json={
+                **get_selected_payload(),
+                "previous_questions": st.session_state.quiz_history,
+            },
         )
         data = response.json()
         result = data.get("result", data)
@@ -320,6 +325,14 @@ def load_quiz():
         "rag_mode": data.get("rag_mode", "selected document context"),
     }
     st.session_state.quiz_data = result
+    for item in result:
+        question = item.get("question")
+
+        if (
+            question
+            and question not in st.session_state.quiz_history
+        ):
+            st.session_state.quiz_history.append(question)
     reset_quiz_state()
     st.session_state.right_mode = "quiz"
 
@@ -436,11 +449,13 @@ def render_quiz_panel():
 
                 if st.session_state.quiz_selected == correct_answer:
                     st.session_state.quiz_score += 1
-                    st.success("Correct.")
-                else:
-                    st.error(f"Incorrect. Correct answer: {correct_answer}")
+                    st.rerun()
+                #     st.success("Correct.")
+                # else:
+                #     st.error(f"Incorrect. Correct answer: {correct_answer}")
 
-                st.info(explanation)
+                # st.info(explanation)
+                # st.rerun()
 
     else:
         if st.session_state.quiz_selected == correct_answer:
@@ -524,24 +539,37 @@ def build_graph_from_mindmap(mindmap):
     edges = []
     details_map = {}
 
-    def add_node(node, parent_id=None, counter=[0]):
+    def add_node(node, parent_id=None, level=1, counter=[0]):
         counter[0] += 1
         node_id = f"node_{counter[0]}"
 
         title = node.get("title", "Untitled")
         details = node.get("details", "")
 
+        if level == 1:
+            size = 28
+            color = "#3ECFA0"
+        elif level == 2:
+            size = 22
+            color = "#7DD9B8"
+        else:
+            size = 18
+            color = "#BFEFE0"
+
         nodes.append(
             Node(
                 id=node_id,
                 label=title,
-                size=24,
+                size=size,
+                color=color,
             )
         )
+
         details_map[node_id] = {
             "title": title,
             "details": details,
         }
+
         if parent_id:
             edges.append(
                 Edge(
@@ -549,24 +577,30 @@ def build_graph_from_mindmap(mindmap):
                     target=node_id,
                 )
             )
+
         for child in node.get("children", []):
-            add_node(child, node_id, counter)
+            add_node(child, node_id, level + 1, counter)
 
         return node_id
+
     root_id = "root"
+
     nodes.append(
         Node(
             id=root_id,
             label=mindmap.get("title", "Mind Map"),
-            size=32,
+            size=36,
+            color="#1A7A5E",
         )
     )
+
     details_map[root_id] = {
         "title": mindmap.get("title", "Mind Map"),
         "details": mindmap.get("summary", ""),
     }
+
     for node in mindmap.get("nodes", []):
-        add_node(node, root_id)
+        add_node(node, root_id, level=1)
 
     return nodes, edges, details_map
 
@@ -588,23 +622,30 @@ def render_mindmap_panel():
         st.write(mindmap.get("raw", ""))
         return
 
+    st.markdown(f"**{mindmap.get('title', 'Mind Map')}**")
+
+    if mindmap.get("summary"):
+        st.caption(mindmap.get("summary"))
+
     nodes, edges, details_map = build_graph_from_mindmap(mindmap)
 
     config = Config(
-        width=480,
-        height=520,
+        width=520,
+        height=560,
         directed=False,
-        physics=True,
-        hierarchical=False,
+        physics=False,
+        hierarchical=True,
         nodeHighlightBehavior=True,
         highlightColor="#F7A7A6",
-        collapsible=True,
+        collapsible=False,
     )
+
     selected_node = agraph(
         nodes=nodes,
         edges=edges,
         config=config,
     )
+
     st.markdown("---")
 
     if selected_node:
@@ -614,7 +655,8 @@ def render_mindmap_panel():
             st.markdown(f"**{details['title']}**")
             st.write(details.get("details") or "No details available.")
     else:
-        st.caption("Click a node to view details.")
+        st.caption("Click a node to view study details.")
+
     st.markdown("---")
 
     if st.button("Generate Another Mind Map", use_container_width=True):
@@ -844,12 +886,15 @@ with middle:
         else:
             with st.spinner("Thinking..."):
                 response = requests.post(
-                    f"{API_URL}/chat",
-                    json={
-                        "question": question,
-                        "file_ids": st.session_state.selected_file_ids,
-                    },
-                )
+                f"{API_URL}/chat",
+                json={
+                    "question": question,
+                    "file_ids": st.session_state.selected_file_ids,
+
+                    # Send previous chat messages to backend
+                    "history": st.session_state.chat_history[-20:],
+                },
+            )
                 data = response.json()
                 answer = data.get("answer", "No response.")
 
@@ -876,4 +921,5 @@ with right:
         render_mindmap_panel()
 
     else:
+
         render_tools_panel()

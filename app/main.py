@@ -1,6 +1,7 @@
 import os
 import shutil
 import uuid
+from app.vector_store import rebuild_faiss_index, search_similar_chunks
 
 # FastAPI tools for creating API routes and handling file uploads
 from fastapi import FastAPI, UploadFile, File, Form
@@ -9,11 +10,9 @@ from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 
 
-# File processing functions
 from app.file_processor import (
     extract_text_from_file,
     chunk_text,
-    retrieve_relevant_chunks,
 )
 
 # Study assistant functions
@@ -127,115 +126,34 @@ def get_selected_context(file_ids=None):
     #blank lines between files
 
     return combined_text, selected_files
+def get_retrieved_context(
+    question: str,
+    file_ids=None,
+    top_k: int = 5,
+):
+    """
+    FAISS semantic retrieval.
+    """
 
-
-def get_retrieved_context(question: str, file_ids=None, top_k: int = 5):
-    #    """
-    # Retrieves relevant chunks from selected files.
-
-    # This is the lightweight RAG-style retrieval step.
-
-    # Flow:
-    # 1. Get selected files.
-    # 2. Collect all chunks from those files.
-    # 3. Score chunks based on keyword overlap.
-    # 4. Retrieve top_k most relevant chunks.
-    # 5. Build a context string for the AI.
-
-    # Parameters:
-    #     question (str):
-    #         User's question.
-
-    #     file_ids (list | None):
-    #         Selected file IDs.
-
-    #     top_k (int):
-    #         Number of chunks to retrieve.
-
-    # Returns:
-    #     dict:
-    #         Retrieved context, selected files, chunk stats, and sources.
-    # """
-    
     selected_files = get_selected_files(file_ids)
 
-    # Store all chunks with metadata
-    all_chunks = []
-
-    # Loop through selected files
-    for item in selected_files:
-
-        # Loop through each chunk in the file
-        for chunk_index, chunk in enumerate(item["chunks"]):
-
-            # Store chunk text plus source information
-            all_chunks.append(
-                {
-                    "filename": item["filename"],
-                    "folder": item.get("folder", "Default"),
-                    "chunk_index": chunk_index + 1,
-                    "chunk": chunk,
-                }
-            )
-
-    # Extract only the chunk text for retrieval scoring
-    chunk_texts = [item["chunk"] for item in all_chunks]
-
-    # Retrieve the most relevant chunks using lightweight keyword matching
-    retrieved_chunks = retrieve_relevant_chunks(
+    retrieval = search_similar_chunks(
         question=question,
-        chunks=chunk_texts,
+        selected_file_ids=file_ids,
         top_k=top_k,
     )
 
-    # These will be sent to the AI as context
-    retrieved_context_parts = []
-
-    # These will be returned to the frontend as source information
-    sources = []
-
-    # Loop through retrieved chunks and match each chunk back to its source file
-    for index, chunk in enumerate(retrieved_chunks):
-       # Find the original file/chunk metadata
-        source_item = next(
-            (
-                item
-                for item in all_chunks
-                if item["chunk"] == chunk
-            ),
-            None,
-        )
-
-        # If source metadata is found, create source label
-        if source_item:
-            source_label = (
-                f"{source_item['filename']} "
-                f"(chunk {source_item['chunk_index']})"
-            )
-
-            # Store source info for frontend display
-            sources.append(
-                {
-                    "filename": source_item["filename"],
-                    "folder": source_item["folder"],
-                    "chunk_index": source_item["chunk_index"],
-                }
-            )
-        else:
-            source_label = f"Unknown source chunk {index + 1}"
-
-        retrieved_context_parts.append(
-            f"Relevant Chunk {index + 1} - Source: {source_label}\n{chunk}"
-        )
-
-    retrieved_context = "\n\n".join(retrieved_context_parts)
+    retrieved_context = "\n\n".join(
+        f"Relevant Chunk {i + 1}\n{chunk}"
+        for i, chunk in enumerate(retrieval["chunks"])
+    )
 
     return {
         "context": retrieved_context,
         "selected_files": selected_files,
-        "total_chunks": len(chunk_texts),
-        "chunks_used": len(retrieved_chunks),
-        "sources": sources,
+        "total_chunks": retrieval["total_chunks"],
+        "chunks_used": retrieval["chunks_used"],
+        "sources": retrieval["sources"],
     }
 
 
@@ -263,6 +181,8 @@ async def upload_file(
         "text": extracted_text,
         "chunks": chunks,
     }
+    # Rebuild FAISS index whenever a new file is uploaded
+    rebuild_faiss_index(stored_files)
 
     return {
         "file_id": file_id,
@@ -312,7 +232,8 @@ async def upload_multiple_files(
                 "preview": extracted_text[:500],
             }
         )
-
+    # Rebuild FAISS index after all uploads complete
+    rebuild_faiss_index(stored_files)
     return {"uploaded": uploaded}
 
 
@@ -338,6 +259,16 @@ def chat(payload: dict):
     question = payload.get("question", "")
     file_ids = payload.get("file_ids", [])
 
+    # Get conversation history from frontend
+    history = payload.get("history", [])
+
+    # Convert history list into readable text for the AI
+    chat_memory = "\n\n".join(
+        f"{msg.get('role', 'user').capitalize()}: {msg.get('content', '')}"
+        for msg in history[-10:]
+    )
+
+    # Retrieve relevant document chunks
     rag_data = get_retrieved_context(
         question=question,
         file_ids=file_ids,
@@ -347,7 +278,12 @@ def chat(payload: dict):
     if not rag_data["context"]:
         return {"answer": "Please upload and select at least one file first."}
 
-    answer = chat_with_notes(question, rag_data["context"])
+    # Send current question, retrieved notes, and chat memory to AI
+    answer = chat_with_notes(
+        question,
+        rag_data["context"],
+        chat_memory,
+    )
 
     return {
         "answer": answer,
@@ -355,8 +291,7 @@ def chat(payload: dict):
         "total_chunks": rag_data["total_chunks"],
         "chunks_used": rag_data["chunks_used"],
         "sources": rag_data["sources"],
-        "rag_mode": "lightweight keyword retrieval",
-    }
+        "rag_mode": "hybrid FAISS + keyword retrieval + conversation memory",       }
 
 
 @app.post("/quiz")
@@ -396,14 +331,22 @@ def mindmap(payload: dict = None):
 def quiz_json(payload: dict = None):
     payload = payload or {}
     context, selected_files = get_selected_context(payload.get("file_ids", []))
-
+ 
     if not context:
         return {"error": "Please upload and select at least one file first."}
 
     total_chunks = sum(len(item["chunks"]) for item in selected_files)
 
+    previous_questions = payload.get(
+        "previous_questions",
+        [],
+    )
+
     return {
-        "result": generate_quiz_json(context),
+        "result": generate_quiz_json(
+            context,
+            previous_questions,
+        ),
         "selected_files": len(selected_files),
         "total_chunks": total_chunks,
         "chunks_used": min(5, total_chunks),
