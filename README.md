@@ -10,6 +10,29 @@ This project is inspired by modern AI learning tools such as NotebookLM while ex
 
 ---
 
+## User Interface and Experience
+
+The Streamlit frontend uses a consistent mint-based visual theme across the full application. The layout is designed around three main work areas:
+
+* Sources panel for uploading, organizing, selecting, and previewing files.
+* Chat panel for asking questions about selected notes.
+* Tools panel for study tools and code analysis.
+
+Each main panel scrolls independently on desktop so long source lists, chat history, and tool results do not move the entire page together. The chat input stays fixed at the bottom of the chat panel and uses a single-line composer, similar to common AI chat applications.
+
+Study tools such as quiz generation, flashcards, and mind maps open in themed modal popups with a dark transparent backdrop and close controls. This keeps the main workspace visible while showing generated learning activities in a focused overlay.
+
+Code Analyzer results appear directly below the code input instead of being mixed into the note chat. This keeps document chat and code review workflows separate.
+
+The interface also includes:
+
+* Consistent mint focus states and cursor colors for inputs.
+* Clearer loading cards for longer AI actions.
+* Responsive behavior for smaller screens, where the chat panel is prioritized first.
+* Compact, readable cards, buttons, alerts, and modal content.
+
+---
+
 ## Objectives
 
 * Provide an AI-powered study assistant for educational materials.
@@ -112,6 +135,7 @@ FastAPI Backend
 ### Frontend
 
 * Streamlit
+* Streamlit Agraph for interactive mind map visualization
 
 ### Backend
 
@@ -128,6 +152,11 @@ FastAPI Backend
 
 * PyPDF
 * Python-Docx
+
+### Retrieval and Search
+
+* Sentence Transformers
+* FAISS
 
 ### Environment Management
 
@@ -151,7 +180,7 @@ StudyAssistant/
 │
 ├── streamlit_app.py
 ├── requirements.txt
-├── .env
+├── .env -->API 
 ├── test_groq.py
 └── README.md
 ```
@@ -229,11 +258,9 @@ http://localhost:8501
 
 ## Future Improvements
 
-* Retrieval-Augmented Generation (RAG)
-* Vector Database Integration (FAISS)
-* Source Citation Support
-* Interactive Visual Mind Maps
-* Multi-Document Chat
+* Persistent uploaded file storage
+* Saved chat and study sessions
+* Richer source citation support
 * Document Comparison
 * UML Diagram Generation
 * Complexity Analysis
@@ -258,6 +285,6 @@ This project demonstrates the integration of:
 
 ## Author
 
-Developed as a Final Year Project for CSC351.
+Developed as a Final Year Project for CSC & ITE 351.
 
 AI Study & Code Assistant aims to improve learning efficiency by combining intelligent document understanding with programming support in a unified educational platform.

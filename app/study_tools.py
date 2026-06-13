@@ -65,13 +65,24 @@ Rules:
     return ask_ai(prompt)
 
 
-def generate_quiz(context: str) -> str:
+def generate_quiz_json(
+    context: str,
+    previous_questions=None,
+):
+
+    previous_questions = previous_questions or []
+
+    previous_text = "\n".join(
+        f"- {question}"
+        for question in previous_questions
+    )
+
     prompt = f"""
-Create 5 multiple-choice quiz questions from these notes.
+Create 5 multiple-choice quiz questions from the notes.
 
 Previously generated questions:
 
-{previous_text}
+{previous_text if previous_text else "None"}
 
 Requirements:
 
@@ -81,20 +92,14 @@ Requirements:
 - Focus on different concepts from the notes.
 - Cover different sections of the material.
 - Mix easy, medium, and difficult questions.
+- Prefer application-based questions.
 
 Notes:
 {context[:12000]}
 
-Format:
-Q1. Question
-A. Option
-B. Option
-C. Option
-D. Option
-Answer: Correct option
-Explanation: Short explanation
+Return ONLY valid JSON.
+...
 """
-    return ask_ai(prompt)
 
 
 def generate_flashcards(context: str) -> str:
@@ -177,19 +182,69 @@ JSON format:
 
     return data
 
+def generate_flashcards_json(
+    context: str,
+    previous_flashcards=None,
+):
+    """
+    Generate study-focused flashcards.
 
-def generate_flashcards_json(context: str):
+    When users click "Generate Another Set",
+    previously generated flashcards are provided
+    so the AI can avoid repetition.
+    """
+
+    previous_flashcards = previous_flashcards or []
+
+    previous_text = "\n".join(
+        f"- {card}"
+        for card in previous_flashcards
+    )
+
     prompt = f"""
-Create 8 flashcards from the notes.
+You are an expert educator and learning designer.
+
+Create 8 high-quality flashcards from the notes.
 
 Notes:
 {context[:12000]}
+
+Previously generated flashcards:
+
+{previous_text if previous_text else "None"}
+
+Requirements:
+
+- Do NOT repeat previous flashcards.
+- Do NOT create reworded versions of previous flashcards.
+- Generate completely new flashcards.
+- Focus on concepts not previously covered.
+- Cover different sections of the notes.
+- Prioritize important learning material.
+- Mix different flashcard styles.
+
+Include a combination of:
+
+- Definitions
+- Examples
+- Relationships between concepts
+- Real-world applications
+- Exam-relevant concepts
+- Common mistakes and misconceptions
+
+Good flashcards should help students:
+
+- Understand
+- Memorize
+- Apply
+- Revise
 
 Return ONLY valid JSON.
 Do not include markdown.
 Do not include explanations outside JSON.
 
 JSON format:
+
 [
   {{
     "front": "Question or term",
@@ -197,104 +252,136 @@ JSON format:
   }}
 ]
 """
+
     response = ask_ai(prompt)
+
     data = extract_json(response)
 
     if data is None:
         return {
             "error": "Could not generate valid flashcard JSON.",
-            "raw": response
+            "raw": response,
         }
 
     return data
 
-def generate_mindmap_json(context: str):
+def generate_mindmap_json(
+    context: str,
+    previous_mindmaps=None,
+):
     """
     Generates a study-focused structured JSON mind map.
 
-    This version is designed to create meaningful learning nodes,
-    not random tiny actions or unclear branches.
+    Designed to:
+    - Improve understanding
+    - Improve revision
+    - Show relationships between concepts
+    - Avoid repeating previous mind maps
     """
 
-    prompt = f"""
-You are an expert learning designer.
+    previous_mindmaps = previous_mindmaps or []
 
-Create a study-focused mind map from the notes.
+    previous_text = "\n".join(
+        f"- {item}"
+        for item in previous_mindmaps
+    )
+
+    prompt = f"""
+You are an expert educator, learning scientist, and curriculum designer.
+
+Your task is to transform the notes into a study-focused mind map that helps a student:
+
+- Understand the topic quickly
+- Remember important concepts
+- See relationships between ideas
+- Prepare for quizzes and exams
+- Review the material efficiently
 
 Notes:
 {context[:12000]}
 
-Your goal:
-- Help a student understand and revise the topic.
-- Focus on concepts, definitions, relationships, examples, and exam points.
-- Do NOT create nodes for small actions like "click", "type", "press enter", or UI steps.
-- Do NOT create random procedural steps unless the notes are clearly about a process.
-- Keep the map clean and useful for studying.
+Previously generated mind map branches:
+{previous_text if previous_text else "None"}
 
-Mind map rules:
-- Create 1 main topic.
-- Create 4 to 6 main branches.
-- Each main branch should have 2 to 4 child nodes.
-- Each node should contain useful study details.
-- Details should explain meaning, importance, or examples.
-- Use clear academic labels.
-- Avoid duplicate nodes.
-- Avoid very short unclear labels.
+Instructions regarding previous mind maps:
+
+- Avoid repeating the exact same branch names when possible.
+- Avoid repeating the exact same hierarchy.
+- Prefer concepts that were previously underexplored.
+- If major concepts were already covered, create deeper branches rather than repeating them.
+- The goal is to provide a fresh learning perspective while remaining useful for studying.
+
+Learning Priorities (highest importance first):
+
+1. Core Concepts
+2. Relationships Between Concepts
+3. Important Definitions
+4. Examples and Applications
+5. Exam-Relevant Points
+6. Common Mistakes and Misconceptions
+
+Mind Map Design Rules:
+
+- Create ONE central topic.
+- Create 4–6 major branches.
+- Each major branch should represent an important learning area.
+- Each major branch should contain 2–4 meaningful child nodes.
+- Child nodes should explain:
+  - definitions
+  - examples
+  - relationships
+  - applications
+  - exam tips
+  - common mistakes
+
+Do NOT:
+
+- Create branches for UI actions.
+- Create branches for button clicks or software steps.
+- Create vague labels.
+- Create duplicate concepts.
+- Create branches containing only one word with no meaning.
+- Repeat the same idea under multiple branches.
+
+Branch Naming Rules:
+
+Bad Examples:
+- Stuff
+- More Details
+- Process
+- Information
+
+Good Examples:
+- Object-Oriented Programming Principles
+- Database Relationships
+- Neural Network Training Process
+- Classification Evaluation Metrics
+- Causes of Customer Churn
+
+The resulting mind map should feel like a high-quality study guide created by a professor.
 
 Return ONLY valid JSON.
 Do not include markdown.
 Do not include explanations outside JSON.
 
 JSON format:
+
 {{
-  "title": "Main Study Topic",
-  "summary": "A short overview of the topic in 2-3 sentences.",
+  "title": "Main Topic",
+  "summary": "2-3 sentence overview of the topic",
   "nodes": [
     {{
-      "title": "Core Concept",
-      "details": "Explain what this branch means and why it matters.",
+      "title": "Major Study Branch",
+      "details": "Why this branch matters",
       "children": [
         {{
-          "title": "Definition",
-          "details": "Clear definition based on the notes.",
+          "title": "Important Concept",
+          "details": "Explanation, example, relationship, or exam note",
           "children": []
         }},
         {{
-          "title": "Example",
-          "details": "A useful example based on the notes.",
-          "children": []
-        }}
-      ]
-    }},
-    {{
-      "title": "Important Process",
-      "details": "Explain the process or relationship if relevant.",
-      "children": [
-        {{
-          "title": "Step or Component",
-          "details": "Explain this part clearly.",
-          "children": []
-        }}
-      ]
-    }},
-    {{
-      "title": "Key Terms",
-      "details": "Important vocabulary students should remember.",
-      "children": [
-        {{
-          "title": "Term",
-          "details": "Meaning of the term.",
-          "children": []
-        }}
-      ]
-    }},
-    {{
-      "title": "Exam Notes",
-      "details": "Important points likely to be tested.",
-      "children": [
-        {{
-          "title": "Common Question",
-          "details": "Explain what students should know.",
+          "title": "Important Concept",
+          "details": "Explanation, example, relationship, or exam note",
           "children": []
         }}
       ]
@@ -310,7 +397,7 @@ JSON format:
     if data is None:
         return {
             "error": "Could not generate valid mind map JSON.",
-            "raw": response
+            "raw": response,
         }
 
     return data

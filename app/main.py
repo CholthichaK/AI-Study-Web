@@ -15,16 +15,24 @@ from app.file_processor import (
     chunk_text,
 )
 
-# Study assistant functions
+# # Study assistant functions
+# from app.study_tools import (
+#     chat_with_notes,
+#     generate_quiz,
+#     generate_flashcards,
+#     generate_mindmap,
+#     generate_quiz_json,
+#     generate_flashcards_json,
+#     generate_mindmap_json,
+# )
+
 from app.study_tools import (
     chat_with_notes,
-    generate_quiz,
-    generate_flashcards,
-    generate_mindmap,
     generate_quiz_json,
     generate_flashcards_json,
     generate_mindmap_json,
 )
+
 
 # Code analysis functions
 from app.code_analyzer import explain_code, find_bugs, optimize_code
@@ -294,52 +302,57 @@ def chat(payload: dict):
         "rag_mode": "hybrid FAISS + keyword retrieval + conversation memory",       }
 
 
-@app.post("/quiz")
-def quiz(payload: dict = None):
-    payload = payload or {}
-    context, selected_files = get_selected_context(payload.get("file_ids", []))
+# @app.post("/quiz")
+# def quiz(payload: dict = None):
+#     payload = payload or {}
+#     context, selected_files = get_selected_context(payload.get("file_ids", []))
 
-    if not context:
-        return {"result": "Please upload and select at least one file first."}
+#     if not context:
+#         return {"result": "Please upload and select at least one file first."}
 
-    return {"result": generate_quiz(context)}
-
-
-@app.post("/flashcards")
-def flashcards(payload: dict = None):
-    payload = payload or {}
-    context, selected_files = get_selected_context(payload.get("file_ids", []))
-
-    if not context:
-        return {"result": "Please upload and select at least one file first."}
-
-    return {"result": generate_flashcards(context)}
+#     return {"result": generate_quiz(context)}
 
 
-@app.post("/mindmap")
-def mindmap(payload: dict = None):
-    payload = payload or {}
-    context, selected_files = get_selected_context(payload.get("file_ids", []))
+# @app.post("/flashcards")
+# def flashcards(payload: dict = None):
+#     payload = payload or {}
+#     context, selected_files = get_selected_context(payload.get("file_ids", []))
 
-    if not context:
-        return {"result": "Please upload and select at least one file first."}
+#     if not context:
+#         return {"result": "Please upload and select at least one file first."}
 
-    return {"result": generate_mindmap(context)}
+#     return {"result": generate_flashcards(context)}
 
+
+# @app.post("/mindmap")
+# def mindmap(payload: dict = None):
+#     payload = payload or {}
+#     context, selected_files = get_selected_context(payload.get("file_ids", []))
+
+#     if not context:
+#         return {"result": "Please upload and select at least one file first."}
+
+#     return {"result": generate_mindmap(context)}
 
 @app.post("/quiz-json")
 def quiz_json(payload: dict = None):
     payload = payload or {}
-    context, selected_files = get_selected_context(payload.get("file_ids", []))
- 
-    if not context:
-        return {"error": "Please upload and select at least one file first."}
-
-    total_chunks = sum(len(item["chunks"]) for item in selected_files)
 
     previous_questions = payload.get(
         "previous_questions",
         [],
+    )
+
+    context, selected_files = get_selected_context(
+        payload.get("file_ids", [])
+    )
+
+    if not context:
+        return {"error": "Please upload and select at least one file first."}
+
+    total_chunks = sum(
+        len(item["chunks"])
+        for item in selected_files
     )
 
     return {
@@ -356,6 +369,17 @@ def quiz_json(payload: dict = None):
 
 @app.post("/flashcards-json")
 def flashcards_json(payload: dict = None):
+
+    payload = payload or {}
+
+    previous_flashcards = payload.get(
+        "previous_flashcards",
+        [],
+    )
+
+    context, selected_files = get_selected_context(
+        payload.get("file_ids", [])
+    )
     payload = payload or {}
     context, selected_files = get_selected_context(payload.get("file_ids", []))
 
@@ -365,7 +389,7 @@ def flashcards_json(payload: dict = None):
     total_chunks = sum(len(item["chunks"]) for item in selected_files)
 
     return {
-        "result": generate_flashcards_json(context),
+        "result": generate_flashcards_json(context, previous_flashcards,),
         "selected_files": len(selected_files),
         "total_chunks": total_chunks,
         "chunks_used": min(5, total_chunks),
@@ -375,22 +399,38 @@ def flashcards_json(payload: dict = None):
 
 @app.post("/mindmap-json")
 def mindmap_json(payload: dict = None):
+
     payload = payload or {}
-    context, selected_files = get_selected_context(payload.get("file_ids", []))
+
+    previous_mindmaps = payload.get(
+        "previous_mindmaps",
+        [],
+    )
+
+    context, selected_files = get_selected_context(
+        payload.get("file_ids", [])
+    )
 
     if not context:
-        return {"error": "Please upload and select at least one file first."}
+        return {
+            "error": "Please upload and select at least one file first."
+        }
 
-    total_chunks = sum(len(item["chunks"]) for item in selected_files)
+    total_chunks = sum(
+        len(item["chunks"])
+        for item in selected_files
+    )
 
     return {
-        "result": generate_mindmap_json(context),
+        "result": generate_mindmap_json(
+            context,
+            previous_mindmaps,
+        ),
         "selected_files": len(selected_files),
         "total_chunks": total_chunks,
         "chunks_used": min(5, total_chunks),
         "rag_mode": "selected document context",
     }
-
 
 @app.post("/code/explain")
 def code_explain(payload: dict):
